@@ -9,6 +9,8 @@ class Student
         $this->conn = $db;
     }
 
+
+
     public function getAllStudents()
     {
         $query = "SELECT s.*, u.email, u.username 
@@ -25,6 +27,7 @@ class Student
             return false;
         }
     }
+
 
     public function getStudentById($id)
     {
@@ -71,24 +74,52 @@ class Student
 
     public function updateStudent($data)
     {
-        $query = "UPDATE " . $this->table . "
-                  SET first_name = :first_name, 
-                      last_name = :last_name, 
-                      date_of_birth = :date_of_birth, 
-                      grade_level = :grade_level
-                  WHERE id = :id";
-
         try {
-            $stmt = $this->conn->prepare($query);
+            // Begin transaction
+            $this->conn->beginTransaction();
 
-            $stmt->bindParam(':id', $data['id']);
-            $stmt->bindParam(':first_name', $data['first_name']);
-            $stmt->bindParam(':last_name', $data['last_name']);
-            $stmt->bindParam(':date_of_birth', $data['date_of_birth']);
-            $stmt->bindParam(':grade_level', $data['grade_level']);
+            // First update the users table
+            $user_query = "UPDATE users 
+                      SET email = :email
+                      WHERE id = (SELECT user_id FROM students WHERE id = :student_id)";
 
-            return $stmt->execute();
+            $user_stmt = $this->conn->prepare($user_query);
+            $user_stmt->bindParam(':email', $data['email']);
+            $user_stmt->bindParam(':student_id', $data['id']);
+            $user_stmt->execute();
+
+            // Then update the students table
+            $student_query = "UPDATE " . $this->table . "
+                         SET first_name = :first_name, 
+                             last_name = :last_name, 
+                             date_of_birth = :date_of_birth, 
+                             grade_level = :grade_level
+                         WHERE id = :id";
+
+            $student_stmt = $this->conn->prepare($student_query);
+
+            // Sanitize inputs
+            $first_name = htmlspecialchars(strip_tags($data['first_name']));
+            $last_name = htmlspecialchars(strip_tags($data['last_name']));
+            $date_of_birth = htmlspecialchars(strip_tags($data['date_of_birth']));
+            $grade_level = intval($data['grade_level']);
+
+            // Bind parameters
+            $student_stmt->bindParam(':id', $data['id']);
+            $student_stmt->bindParam(':first_name', $first_name);
+            $student_stmt->bindParam(':last_name', $last_name);
+            $student_stmt->bindParam(':date_of_birth', $date_of_birth);
+            $student_stmt->bindParam(':grade_level', $grade_level);
+
+            $student_stmt->execute();
+
+            // Commit transaction
+            $this->conn->commit();
+            return true;
+
         } catch (PDOException $e) {
+            // Rollback transaction on error
+            $this->conn->rollBack();
             error_log("Error updating student: " . $e->getMessage());
             return false;
         }
@@ -105,6 +136,21 @@ class Student
         } catch (PDOException $e) {
             error_log("Error deleting student: " . $e->getMessage());
             return false;
+        }
+    }
+
+    public function getTotalStudents()
+    {
+        $query = "SELECT COUNT(*) as total FROM " . $this->table;
+
+        try {
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row['total'];
+        } catch (PDOException $e) {
+            error_log("Error getting total students: " . $e->getMessage());
+            return 0;
         }
     }
 }

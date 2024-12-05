@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'role' => 'Student'
     ];
 
-    $user_id = $user->createUser($new_user);
+    $user_id = $user->addStudent();
 
     if ($user_id) {
         $new_student = [

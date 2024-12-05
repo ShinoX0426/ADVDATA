@@ -19,27 +19,38 @@ class User
     }
 
 
-    public function create()
+    public function create($data)
     {
-        $query = "INSERT INTO " . $this->table . " SET username=:username, email=:email, password=:password, role=:role, full_name=:full_name";
-        $stmt = $this->conn->prepare($query);
+        $query = "INSERT INTO " . $this->table . " 
+                  (username, password, email, role, full_name) 
+                  VALUES 
+                  (:username, :password, :email, :role, :full_name)";
 
-        $this->username = htmlspecialchars(strip_tags($this->username));
-        $this->email = htmlspecialchars(strip_tags($this->email));
-        $this->password = password_hash($this->password, PASSWORD_DEFAULT);
-        $this->role = htmlspecialchars(strip_tags($this->role));
-        $this->full_name = htmlspecialchars(strip_tags($this->full_name));
+        try {
+            $stmt = $this->conn->prepare($query);
 
-        $stmt->bindParam(':username', $this->username);
-        $stmt->bindParam(':email', $this->email);
-        $stmt->bindParam(':password', $this->password);
-        $stmt->bindParam(':role', $this->role);
-        $stmt->bindParam(':full_name', $this->full_name);
+            // Sanitize inputs
+            $username = htmlspecialchars(strip_tags($data['username']));
+            $email = htmlspecialchars(strip_tags($data['email']));
+            $password = password_hash($data['password'], PASSWORD_DEFAULT);
+            $role = htmlspecialchars(strip_tags($data['role']));
+            $full_name = htmlspecialchars(strip_tags($data['full_name']));
 
-        if ($stmt->execute()) {
-            return true;
+            // Bind parameters
+            $stmt->bindParam(':username', $username);
+            $stmt->bindParam(':password', $password);
+            $stmt->bindParam(':email', $email);
+            $stmt->bindParam(':role', $role);
+            $stmt->bindParam(':full_name', $full_name);
+
+            if ($stmt->execute()) {
+                return $this->conn->lastInsertId();
+            }
+            return false;
+        } catch (PDOException $e) {
+            error_log("Error creating user: " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     public function update()
@@ -454,6 +465,43 @@ class User
         } catch (PDOException $e) {
             // Log error and return false
             error_log("Error updating user: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function addStudent($student_data, $user_data)
+    {
+        try {
+            $this->conn->beginTransaction();
+
+            // First, create the user account
+            $user_id = $this->create($user_data);
+
+            if (!$user_id) {
+                throw new Exception("Failed to create user account");
+            }
+
+            // Then, add the student record
+            $query = "INSERT INTO students (user_id, first_name, last_name, date_of_birth, grade_level) 
+                      VALUES (:user_id, :first_name, :last_name, :date_of_birth, :grade_level)";
+
+            $stmt = $this->conn->prepare($query);
+
+            $stmt->bindParam(':user_id', $user_id);
+            $stmt->bindParam(':first_name', $student_data['first_name']);
+            $stmt->bindParam(':last_name', $student_data['last_name']);
+            $stmt->bindParam(':date_of_birth', $student_data['date_of_birth']);
+            $stmt->bindParam(':grade_level', $student_data['grade_level']);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to add student record");
+            }
+
+            $this->conn->commit();
+            return $user_id;
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            error_log("Error adding student: " . $e->getMessage());
             return false;
         }
     }
