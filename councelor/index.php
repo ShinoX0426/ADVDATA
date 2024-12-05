@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../includes/database.php';
+require_once '../includes/user.class.php';
 require_once '../includes/functions.php';
 
 $database = new Database();
