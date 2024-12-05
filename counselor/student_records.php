@@ -2,6 +2,7 @@
 session_start();
 require_once '../includes/database.php';
 require_once '../includes/functions.php';
+require_once '../includes/student.class.php';
 
 $database = new Database();
 $db = $database->connect();
@@ -13,13 +14,10 @@ if ($user_data['role'] !== 'Counselor') {
     die;
 }
 
-$query = "SELECT s.id, s.first_name, s.last_name, s.grade_level, u.email
-          FROM students s
-          JOIN users u ON s.user_id = u.id
-          ORDER BY s.last_name, s.first_name";
-$stmt = $db->prepare($query);
-$stmt->execute();
-$students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$student = new Student($db);
+$students = $student->getAllStudents();
+
+$csrf_token = generate_csrf_token();
 ?>
 
 <!DOCTYPE html>
@@ -33,30 +31,55 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 
 <body class="bg-gray-100">
+    <nav class="bg-blue-600 p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-white text-2xl font-bold">Student Records</h1>
+            <div>
+                <a href="index.php" class="text-white hover:underline mr-4">Dashboard</a>
+                <a href="../logout.php?csrf_token=<?php echo $csrf_token; ?>"
+                    class="text-white hover:underline">Logout</a>
+            </div>
+        </div>
+    </nav>
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold mb-8">Student Records</h1>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4">Student List</h2>
-            <table class="w-full">
-                <thead>
+        <div class="mb-4">
+            <a href="add_student.php" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Add New
+                Student</a>
+        </div>
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <table class="min-w-full">
+                <thead class="bg-gray-200">
                     <tr>
-                        <th class="text-left py-2">Name</th>
-                        <th class="text-left py-2">Grade Level</th>
-                        <th class="text-left py-2">Email</th>
-                        <th class="text-left py-2">Actions</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade
+                            Level</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date
+                            of Birth</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="bg-white divide-y divide-gray-200">
                     <?php foreach ($students as $student): ?>
                         <tr>
-                            <td class="py-2">
+                            <td class="px-6 py-4 whitespace-nowrap">
                                 <?php echo htmlspecialchars($student['last_name'] . ', ' . $student['first_name']); ?>
                             </td>
-                            <td class="py-2"><?php echo htmlspecialchars($student['grade_level']); ?></td>
-                            <td class="py-2"><?php echo htmlspecialchars($student['email']); ?></td>
-                            <td class="py-2">
-                                <a href="student_details.php?id=<?php echo $student['id']; ?>"
-                                    class="text-blue-500 hover:text-blue-700">View Details</a>
+                            <td class="px-6 py-4 whitespace-nowrap"><?php echo htmlspecialchars($student['grade_level']); ?>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap"><?php echo htmlspecialchars($student['email']); ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <?php echo htmlspecialchars($student['date_of_birth']); ?>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <a href="edit_student.php?id=<?php echo $student['id']; ?>"
+                                    class="text-blue-600 hover:text-blue-900 mr-2">Edit</a>
+                                <a href="delete_student.php?id=<?php echo $student['id']; ?>&csrf_token=<?php echo $csrf_token; ?>"
+                                    class="text-red-600 hover:text-red-900"
+                                    onclick="return confirm('Are you sure you want to delete this student?')">Delete</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
