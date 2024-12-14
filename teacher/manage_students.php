@@ -1,27 +1,20 @@
 <?php
+
 session_start();
-require_once '../includes/database.php';
-require_once '../includes/functions.php';
-
-$database = new Database();
-$db = $database->connect();
-
-$user_data = check_login($db);
-
-if ($user_data['role'] !== 'Teacher') {
-    header("Location: ../index.php");
-    die;
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teacher') {
+    header('Location: index.php');
+    exit();
 }
 
-$query = "SELECT s.id, s.first_name, s.last_name, s.grade_level, u.email
-          FROM students s
-          JOIN users u ON s.user_id = u.id
-          ORDER BY s.last_name, s.first_name";
-$stmt = $db->prepare($query);
-$stmt->execute();
-$students = $stmt->fetchAll(PDO::FETCH_ASSOC);
-?>
+// Database connection
+$db = new mysqli('localhost', 'username', 'password', 'school_db');
+if ($db->connect_error) {
+    die("Connection failed: " . $db->connect_error);
+}
 
+$teacher_id = $_SESSION['user_id'];
+$students = $db->query("SELECT * FROM students WHERE class_id IN (SELECT class_id FROM classes WHERE teacher_id = $teacher_id)");
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -33,36 +26,46 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 
 <body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold mb-8">Manage Students</h1>
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4">Student List</h2>
-            <table class="w-full">
-                <thead>
-                    <tr>
-                        <th class="text-left py-2">Name</th>
-                        <th class="text-left py-2">Grade Level</th>
-                        <th class="text-left py-2">Email</th>
-                        <th class="text-left py-2">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($students as $student): ?>
-                        <tr>
-                            <td class="py-2">
-                                <?php echo htmlspecialchars($student['last_name'] . ', ' . $student['first_name']); ?>
-                            </td>
-                            <td class="py-2"><?php echo htmlspecialchars($student['grade_level']); ?></td>
-                            <td class="py-2"><?php echo htmlspecialchars($student['email']); ?></td>
-                            <td class="py-2">
-                                <a href="view_student.php?id=<?php echo $student['id']; ?>"
-                                    class="text-blue-500 hover:text-blue-700">View</a>
-                            </td>
+    <div class="min-h-screen flex flex-col">
+        <nav class="bg-blue-600 text-white p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Manage Students</h1>
+                <a href="dashboard.php" class="bg-blue-500 hover:bg-blue-700 px-4 py-2 rounded">Back to Dashboard</a>
+            </div>
+        </nav>
+
+        <main class="flex-grow container mx-auto mt-8 p-4">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold mb-4">Your Students</h2>
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="p-2 text-left">ID</th>
+                            <th class="p-2 text-left">Name</th>
+                            <th class="p-2 text-left">Email</th>
+                            <th class="p-2 text-left">Actions</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        <?php while ($student = $students->fetch_assoc()): ?>
+                            <tr>
+                                <td class="p-2"><?php echo $student['id']; ?></td>
+                                <td class="p-2"><?php echo $student['name']; ?></td>
+                                <td class="p-2"><?php echo $student['email']; ?></td>
+                                <td class="p-2">
+                                    <a href="edit_student.php?id=<?php echo $student['id']; ?>"
+                                        class="text-blue-500 hover:underline">Edit</a>
+                                </td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+
+        <footer class="bg-gray-200 text-center p-4 mt-8">
+            <p>&copy; 2023 School Management System. All rights reserved.</p>
+        </footer>
     </div>
 </body>
 

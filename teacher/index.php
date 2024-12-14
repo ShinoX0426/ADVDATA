@@ -25,22 +25,43 @@ if ($user_data['role'] !== 'Teacher') {
 </head>
 
 <body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold mb-8">Teacher Dashboard</h1>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <a href="manage_students.php" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                <h2 class="text-xl font-semibold mb-2">Manage Students</h2>
-                <p class="text-gray-600">View and manage student information</p>
-            </a>
-            <a href="report_violation.php" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                <h2 class="text-xl font-semibold mb-2">Report Violation</h2>
-                <p class="text-gray-600">Submit a rule violation report</p>
-            </a>
-            <a href="view_reports.php" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                <h2 class="text-xl font-semibold mb-2">View Reports</h2>
-                <p class="text-gray-600">View submitted violation reports</p>
-            </a>
-        </div>
+    <div class="min-h-screen flex flex-col">
+        <nav class="bg-blue-600 text-white p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Teacher Dashboard</h1>
+                <a href="logout.php" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded">Logout</a>
+            </div>
+        </nav>
+
+        <main class="flex-grow container mx-auto mt-8 p-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <a href="manage_students.php"
+                    class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                    <h2 class="text-xl font-semibold mb-2">View and Manage Students</h2>
+                    <p class="text-gray-600">Access and update student information</p>
+                </a>
+                <a href="record_grades.php"
+                    class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                    <h2 class="text-xl font-semibold mb-2">Record Academic Grades</h2>
+                    <p class="text-gray-600">Enter and update student grades</p>
+                </a>
+                <a href="report_violations.php"
+                    class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                    <h2 class="text-xl font-semibold mb-2">Report Rule Violations</h2>
+                    <p class="text-gray-600">Submit reports for student misconduct</p>
+                </a>
+                <a href="view_attendance.php"
+                    class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                    <h2 class="text-xl font-semibold mb-2">View Student Attendance</h2>
+                    <p class="text-gray-600">Check attendance records for your classes</p>
+                </a>
+
+            </div>
+        </main>
+
+        <footer class="bg-gray-200 text-center p-4 mt-8">
+            <p>&copy; 2023 School Management System. All rights reserved.</p>
+        </footer>
     </div>
 </body>
 
